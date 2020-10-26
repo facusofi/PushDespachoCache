@@ -34,7 +34,7 @@ namespace FichadaRelojUyService
         protected override void OnStart(string[] args)
         {
             t.Elapsed += delegate { ElapsedHandler(); };
-            t.Interval = Convert.ToInt32(timePool) * 60000;
+            t.Interval = Convert.ToInt32(timePool) * 1000;
             t.Start();
             Logger.GetInstance().AddLog(true, "OnStart", "Servicio inicializado.");
             CustomMail mail = new CustomMail(MailType.Information, "Se ha inicializado el servicio de Fichada", "Servicio de Despacho Push");
