@@ -38,6 +38,7 @@
             // 
             // serviceInstaller1
             // 
+            this.serviceInstaller1.Description = "Envía notificaciones de servicios a los móviles";
             this.serviceInstaller1.ServiceName = "PushDespachoCache";
             // 
             // ProjectInstaller

@@ -37,7 +37,7 @@ namespace FichadaRelojUyService
             t.Interval = Convert.ToInt32(timePool) * 1000;
             t.Start();
             Logger.GetInstance().AddLog(true, "OnStart", "Servicio inicializado.");
-            CustomMail mail = new CustomMail(MailType.Information, "Se ha inicializado el servicio de Fichada", "Servicio de Despacho Push");
+            CustomMail mail = new CustomMail(MailType.Information, "Se ha inicializado el servicio de PushDespachoCache", "Servicio de Despacho Push");
 
             mail.Send();
         }
@@ -45,7 +45,7 @@ namespace FichadaRelojUyService
         protected override void OnPause()
         {
             Logger.GetInstance().AddLog(true, "OnPause", "Se ejecutó el método OnPause, el servicio deja de estar activo.");
-            CustomMail mail = new CustomMail(MailType.Information, "Se ha pausado el servicio de Fichada", "Servicio de Fichada");
+            CustomMail mail = new CustomMail(MailType.Information, "Se ha pausado el servicio de PushDespachoCache", "Servicio de Despacho Push");
             mail.Send();
             t.Stop();
         }
@@ -59,7 +59,7 @@ namespace FichadaRelojUyService
         protected override void OnStop()
         {
             Logger.GetInstance().AddLog(true, "OnStop", "Se ejecutó el método OnStop, el servicio deja de estar activo.");
-            CustomMail mail = new CustomMail(MailType.Information, "Se ha detenido el servicio de Fichada", "Servicio de Fichada");
+            CustomMail mail = new CustomMail(MailType.Information, "Se ha detenido el servicio de PushDespachoCache", "Servicio de Despacho Push");
             mail.Send();
             t.Stop();
         }
