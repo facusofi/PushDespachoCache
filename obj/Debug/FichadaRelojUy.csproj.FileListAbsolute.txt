@@ -1,9 +1,0 @@
-C:\bin\debug\FichadaRelojServiceUy.exe.config
-C:\bin\debug\FichadaRelojServiceUy.exe
-C:\bin\debug\FichadaRelojServiceUy.pdb
-C:\Desarrollos.NET\FichadaRelojUy-master\FichadaRelojUy\obj\Debug\FichadaRelojService.ProjectInstaller.resources
-C:\Desarrollos.NET\FichadaRelojUy-master\FichadaRelojUy\obj\Debug\FichadaRelojUyService.Service1.resources
-C:\Desarrollos.NET\FichadaRelojUy-master\FichadaRelojUy\obj\Debug\FichadaRelojUy.csproj.GenerateResource.Cache
-C:\Desarrollos.NET\FichadaRelojUy-master\FichadaRelojUy\obj\Debug\FichadaRelojServiceUy.exe
-C:\Desarrollos.NET\FichadaRelojUy-master\FichadaRelojUy\obj\Debug\FichadaRelojServiceUy.pdb
-C:\Desarrollos.NET\FichadaRelojUy-master\FichadaRelojUy\obj\Debug\FichadaRelojUy.csprojResolveAssemblyReference.cache
