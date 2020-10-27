@@ -2,7 +2,7 @@
 using System.Configuration;
 using System.Net.Mail;
 
-namespace FichadaRelojUyService
+namespace PushDespachoCache
 {
     public class CustomMail
     {

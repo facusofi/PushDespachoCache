@@ -16,7 +16,7 @@ using ShamanClases_CSharp;
 using System.Net.Mail;
 using System.Data.SqlClient;
 
-namespace FichadaRelojUyService
+namespace PushDespachoCache
 {
     public partial class Service1 : ServiceBase
     {

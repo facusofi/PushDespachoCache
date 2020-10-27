@@ -1,4 +1,4 @@
-﻿namespace FichadaRelojUyService
+﻿namespace PushDespachoCache
 {
     partial class Service1
     {
