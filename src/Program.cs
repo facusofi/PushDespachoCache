@@ -23,7 +23,10 @@ namespace PushDespachoCache
             ServiceBase.Run(ServicesToRun);
 #else
             Service1 myServ = new Service1();
-            myServ.CallTeleasistencia();
+            
+            myServ.CallPushAndroid();
+            //myServ.CallTeleasistencia();
+
             // here Process is my Service function
             // that will run when my service onstart is call
             // you need to call your own method or function name here instead of Process();

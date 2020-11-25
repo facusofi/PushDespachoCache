@@ -68,16 +68,27 @@ namespace PushDespachoCache
         public void ElapsedHandler()
         {
 
+            /// Énvía las push notifications de Despacho
+            if (Convert.ToInt16(ConfigurationManager.AppSettings["runPushDespacho"]) == 1)
+            {
+                CallPushAndroid();
+            }
+
+            //Envio los pendientes de teleasistencia
+            if (Convert.ToInt16(ConfigurationManager.AppSettings["runTeleasistencia"]) == 1)
+            {
+                CallTeleasistencia();
+            }
+
+        }
+
+        public void CallPushAndroid()
+        {
+
             /// Connect Cache
-            ConnectionStringCache cnnCache = new ConnectionStringCache();
+            ConnectionStringCache cnnCache = this.getConnectionString();
 
-            cnnCache.Server = ConfigurationManager.AppSettings["Server"];
-            cnnCache.Port = ConfigurationManager.AppSettings["Port"];
-            cnnCache.Namespace = ConfigurationManager.AppSettings["Namespace"];
-            cnnCache.Password = Encrypt.DecryptString(ConfigurationManager.AppSettings["UserID"], "javiernigrelli");
-            cnnCache.UserID = Encrypt.DecryptString(ConfigurationManager.AppSettings["Password"], "javiernigrelli");
             PanelC.MensajesPager objMensajeria = new PanelC.MensajesPager(cnnCache);
-
             DataTable dt = objMensajeria.GetPushAppPendientes();
 
             for (int i = 0; i < dt.Rows.Count - 1; i++)
@@ -85,7 +96,7 @@ namespace PushDespachoCache
 
                 string oneSignalUrl;
                 string result;
-                bool sended = false; 
+                bool sended = false;
 
                 oneSignalUrl = string.Format("{0}?license={1}&mobileNumber={2}&message={3}&header=Shaman SGE", ConfigurationManager.AppSettings["oneSignalUrl"], ConfigurationManager.AppSettings["license"], dt.Rows[i]["MovilId"].ToString(), dt.Rows[i]["Mensaje"].ToString());
 
@@ -99,41 +110,34 @@ namespace PushDespachoCache
                     sended = true;
                 }
 
-                /// HotFix DB Troubles Omni Cache
-                sended = true;
-
                 objMensajeria.SetEstadoMensaje(Convert.ToDecimal(dt.Rows[i]["ID"]), sended);
 
             }
 
             objMensajeria = null;
 
-            //Envio los pendientes de teleasistencia
-            CallTeleasistencia();
-
         }
 
         public void CallTeleasistencia()
         {
             /// Connect Cache
-            ConnectionStringCache cnnCache = new ConnectionStringCache();
-            cnnCache.Server = ConfigurationManager.AppSettings["Server"];
-            cnnCache.Port = ConfigurationManager.AppSettings["Port"];
-            cnnCache.Namespace = ConfigurationManager.AppSettings["Namespace"];
-            cnnCache.Password = Encrypt.EncryptString(ConfigurationManager.AppSettings["Password"], "javiernigrelli");
-            cnnCache.UserID = Encrypt.EncryptString(ConfigurationManager.AppSettings["UserID"], "javiernigrelli");
+            ConnectionStringCache cnnCache = this.getConnectionString();
+
             EmergencyC.IncPendientesTeleasistencia incPendientesTeleasistencia = new EmergencyC.IncPendientesTeleasistencia(cnnCache);
             List<EmergencyDTO.TeleasistenciaReq> listTeleasistenciaReq = incPendientesTeleasistencia.GetPendientes();
+
             if (listTeleasistenciaReq != null)
             {
                 foreach (EmergencyDTO.TeleasistenciaReq teleasistenciaReq in listTeleasistenciaReq)
                 {
                     string url = ConfigurationManager.AppSettings["AIDShamanAPI_URL"];
+
                     //Creo la llamada al WS
                     WebRequest request = WebRequest.Create(url); //"https://msfy-backend.herokuapp.com/auth/signin"
                     request.Credentials = CredentialCache.DefaultCredentials;
                     request.Method = "POST";
                     request.ContentType = "application/json";
+
                     //Preparo el objeto a enviar
                     string stringData = JsonConvert.SerializeObject(teleasistenciaReq);
                     byte[] sBytes = Encoding.UTF8.GetBytes(stringData);
@@ -142,6 +146,7 @@ namespace PushDespachoCache
                     dataStream.Write(sBytes, 0, sBytes.Length);
                     dataStream.Close();
                     WebResponse response = request.GetResponse();
+
                     //RETURN
                     string req = string.Empty;
                     using (Stream responseStream = response.GetResponseStream())
@@ -167,6 +172,25 @@ namespace PushDespachoCache
                         throw;
                     }
                 }
+            }
+        }
+
+        public ConnectionStringCache getConnectionString()
+        {
+            try
+            {
+                ConnectionStringCache cnnCache = new ConnectionStringCache();
+                cnnCache.Server = ConfigurationManager.AppSettings["Server"];
+                cnnCache.Port = ConfigurationManager.AppSettings["Port"];
+                cnnCache.Namespace = ConfigurationManager.AppSettings["Namespace"];
+                cnnCache.Password = Encrypt.EncryptString(ConfigurationManager.AppSettings["Password"], "javiernigrelli");
+                cnnCache.UserID = Encrypt.EncryptString(ConfigurationManager.AppSettings["UserID"], "javiernigrelli");
+
+                return cnnCache;
+            }
+            catch (Exception)
+            {
+                return null;
             }
         }
 
