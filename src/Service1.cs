@@ -30,9 +30,21 @@ namespace PushDespachoCache
         {
             InitializeComponent();
         }
-
-
         protected override void OnStart(string[] args)
+        {
+            new System.Threading.Thread(StartService).Start();
+        }
+
+
+        protected override void OnPause()
+        {
+            Logger.GetInstance().AddLog(true, "OnPause", "Se ejecutó el método OnPause, el servicio deja de estar activo.");
+            CustomMail mail = new CustomMail(MailType.Information, "Se ha pausado el servicio de PushDespachoCache", "Servicio de Despacho Push");
+            mail.Send();
+            t.Stop();
+        }
+
+        internal void StartService()
         {
             t.Elapsed += delegate { ElapsedHandler(); };
             t.Interval = Convert.ToInt32(timePool) * 1000;
@@ -41,14 +53,6 @@ namespace PushDespachoCache
             CustomMail mail = new CustomMail(MailType.Information, "Se ha inicializado el servicio de PushDespachoCache", "Servicio de Despacho Push");
 
             mail.Send();
-        }
-
-        protected override void OnPause()
-        {
-            Logger.GetInstance().AddLog(true, "OnPause", "Se ejecutó el método OnPause, el servicio deja de estar activo.");
-            CustomMail mail = new CustomMail(MailType.Information, "Se ha pausado el servicio de PushDespachoCache", "Servicio de Despacho Push");
-            mail.Send();
-            t.Stop();
         }
 
         protected override void OnContinue()
@@ -67,16 +71,15 @@ namespace PushDespachoCache
 
         public void ElapsedHandler()
         {
-
-            /// Énvía las push notifications de Despacho
             if (Convert.ToInt16(ConfigurationManager.AppSettings["runPushDespacho"]) == 1)
             {
+                //Logger.GetInstance().AddLog(true, "CallPushAndroid", "Énvía las push notifications de Despacho");
                 CallPushAndroid();
             }
 
-            //Envio los pendientes de teleasistencia
             if (Convert.ToInt16(ConfigurationManager.AppSettings["runTeleasistencia"]) == 1)
             {
+                //Logger.GetInstance().AddLog(true, "CallTeleasistencia", "Envio los pendientes de teleasistencia");
                 CallTeleasistencia();
             }
 
