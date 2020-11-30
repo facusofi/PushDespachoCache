@@ -9,28 +9,40 @@ namespace PushDespachoCache
 {
     static class Program
     {
-        /// <summary>
-        /// The main entry point for the application.
-        /// </summary>
-        static void Main()
+        public static void Main(string[] args)
         {
-#if (!DEBUG)
+            if (args.FirstOrDefault()?.ToUpper() == "/CONSOLE")
+            {
+                RunAsConsole();
+            }
+            else
+            {
+                RunAsService();
+            }
+        }
+        private static void RunAsConsole()
+        {
+            Service1 serv = new Service1();
+            serv.StartService();
+
+            Console.WriteLine("Running service as console. Press any key to stop.");
+            Console.ReadKey();
+
+            serv.Stop();
+        }
+        private static void RunAsService()
+        {
+            /* Warning: Don't load the object graph or 
+             * initialize anything in here. 
+             * 
+             * Initialize everything in TestService.StartService() instead
+             */
             ServiceBase[] ServicesToRun;
             ServicesToRun = new ServiceBase[]
-                {
+            {
                 new Service1()
-                };
+            };
             ServiceBase.Run(ServicesToRun);
-#else
-            Service1 myServ = new Service1();
-            
-            myServ.CallPushAndroid();
-            //myServ.CallTeleasistencia();
-
-            // here Process is my Service function
-            // that will run when my service onstart is call
-            // you need to call your own method or function name here instead of Process();
-#endif
         }
     }
 }
