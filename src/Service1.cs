@@ -88,29 +88,46 @@ namespace PushDespachoCache
             /// Connect Cache
             ConnectionStringCache cnnCache = this.getConnectionString();
 
+            Logger.GetInstance().AddLog(true, "CallPushAndroid", "Buscando Mensajes para Push");
+
             PanelC.MensajesPager objMensajeria = new PanelC.MensajesPager(cnnCache);
             DataTable dt = objMensajeria.GetPushAppPendientes();
 
-            for (int i = 0; i < dt.Rows.Count - 1; i++)
+            Logger.GetInstance().AddLog(true, "CallPushAndroid", string.Format("Se encontraron {0} mensajes", dt.Rows.Count.ToString()));
+
+            for (int i = 0; i <= dt.Rows.Count - 1; i++)
             {
 
-                string oneSignalUrl;
-                string result;
-                bool sended = false;
-
-                oneSignalUrl = string.Format("{0}?license={1}&mobileNumber={2}&message={3}&header=Shaman SGE", ConfigurationManager.AppSettings["oneSignalUrl"], ConfigurationManager.AppSettings["license"], dt.Rows[i]["MovilId"].ToString(), dt.Rows[i]["Mensaje"].ToString());
-
-                using (WebClient client = new WebClient())
+                try
                 {
-                    result = client.DownloadString(oneSignalUrl);
-                }
+                    string oneSignalUrl;
+                    string result;
+                    bool sended = false;
 
-                if ((!string.IsNullOrEmpty(result)) && (result.ToLower() == "true"))
+                    oneSignalUrl = string.Format("{0}?license={1}&mobileNumber={2}&message={3}&header=Shaman SGE", ConfigurationManager.AppSettings["oneSignalUrl"], ConfigurationManager.AppSettings["license"], dt.Rows[i]["MovilId"].ToString(), dt.Rows[i]["Mensaje"].ToString());
+
+                    Logger.GetInstance().AddLog(true, "CallPushAndroid", string.Format("Enviando {0}", oneSignalUrl));
+
+                    using (WebClient client = new WebClient())
+                    {
+                        result = client.DownloadString(oneSignalUrl);
+                    }
+
+                    if ((!string.IsNullOrEmpty(result)) && (result.ToLower() == "true"))
+                    {
+                        sended = true;
+                    }
+
+                    Logger.GetInstance().AddLog(true, "CallPushAndroid", string.Format("Enviado mensaje {0} = {1}", dt.Rows[i]["ID"].ToString(), sended.ToString()));
+
+                    objMensajeria.SetEstadoMensaje(Convert.ToDecimal(dt.Rows[i]["ID"]), sended);
+
+                }
+                
+                catch (Exception ex)
                 {
-                    sended = true;
+                    Logger.GetInstance().AddLog(true, "CallPushAndroid", ex.Message);
                 }
-
-                objMensajeria.SetEstadoMensaje(Convert.ToDecimal(dt.Rows[i]["ID"]), sended);
 
             }
 
