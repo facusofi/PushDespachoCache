@@ -175,8 +175,6 @@ namespace PushDespachoCache
                         req = reader.ReadToEnd();
                         dynamic oReturn = JsonConvert.DeserializeObject(req);
                         incPendientesTeleasistencia.SaveConferenceID(teleasistenciaReq.ShamanIncidenteID, Convert.ToInt64(oReturn.ConferenceId));
-                        //Grabar la ConferenciaID
-
                     }
                     try
                     {
