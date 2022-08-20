@@ -52,8 +52,8 @@ namespace PushDespachoCache
                 SmtpServer.Credentials = new System.Net.NetworkCredential(mailSettings.SupportMail, mailSettings.SupportMailPassword);
                 SmtpServer.EnableSsl = false;
 
-                SmtpServer.Send(mail);
-                Logger.GetInstance().AddLog(true, "MailService", string.Format("Se ha enviado un mail con el asunto: {0}", this.Subject));
+                //SmtpServer.Send(mail);
+                //Logger.GetInstance().AddLog(true, "MailService", string.Format("Se ha enviado un mail con el asunto: {0}", this.Subject));
             }
             catch (Exception ex)
             {

@@ -26,7 +26,7 @@ namespace PushDespachoCache
             serv.StartService();
 
             Console.WriteLine("Running service as console. Press any key to stop.");
-            Console.ReadKey();
+            //Console.ReadKey();
 
             serv.Stop();
         }
