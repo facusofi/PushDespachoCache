@@ -170,7 +170,7 @@ namespace PushDespachoCache
                         for (int w = 0; w < dtWP.Rows.Count; w++)
                         {
 
-                            dtWP.Rows[w]["Telefono"] = "5491131766212";
+                            dtWP.Rows[w]["Telefono"] = "5491167551605";
 
                             string urlWA = string.Format("{0}?numDest={1}&nameTemplate={2}&paramsTemplate.1={3}",
                                 dtWP.Rows[w]["URL"].ToString(), dtWP.Rows[w]["Telefono"].ToString(), dtWP.Rows[w]["nameTemplate"].ToString(), linkTelmed);
@@ -614,10 +614,6 @@ namespace PushDespachoCache
 
                     EmergencyC.Vehiculos objVehiculos = new EmergencyC.Vehiculos(cnnCache);
 
-                    if (movil[0] == "AE573NZ")
-                    {
-                        Debug.Print("xxx");
-                    }
                     Debug.Print(movil[0]);
 
                     if (objVehiculos.Abrir(objVehiculos.GetIdByDominio(movil[0]).ToString()))
@@ -628,11 +624,11 @@ namespace PushDespachoCache
                         if (objGps.SetPosition(movil[0], objVehiculos.GetMovilId(objVehiculos.ID, DateTime.Now), objVehiculos.ID, movil[2], modNumbers.GetDouble(movil[3], true), modNumbers.GetDouble(movil[4], true),
                             "", movil[6], movil[7], Convert.ToInt32(Convert.ToDecimal(movil[5])), movil[8], movil[9], movil[10], "JOB"))
                         {
-                            Logger.GetInstance().AddLog(true, "CallGPS - Vehículo {0} ok", movil[0]);
+                            Logger.GetInstance().AddLog(true, "CallGPS", string.Format("Vehículo {0} ok", movil[0]));
                         }
                         else
                         {
-                            Logger.GetInstance().AddLog(false, "CallGPS - Error al guardar el vehículo {0}", movil[0]);
+                            Logger.GetInstance().AddLog(false, "CallGPS", string.Format("Error al guardar el vehículo {0}", movil[0]));
                         }
 
                         objGps = null;
@@ -640,7 +636,7 @@ namespace PushDespachoCache
                     }
                     else
                     {
-                        Logger.GetInstance().AddLog(false, "CallGPS - No se pudo vincular el vehículo {0}", movil[0]);
+                        Logger.GetInstance().AddLog(false, "CallGPS", string.Format("No se pudo vincular el vehículo {0}", movil[0]));
                     }
 
                     objVehiculos = null;
