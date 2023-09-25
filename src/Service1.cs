@@ -19,6 +19,8 @@ using Newtonsoft.Json;
 using Methods;
 using ModelTelmed;
 
+using System.Data.OleDb;
+
 namespace PushDespachoCache
 {
     public partial class Service1 : ServiceBase
@@ -107,10 +109,15 @@ namespace PushDespachoCache
                 this.CallGPS();
             }
 
+            if (Convert.ToInt16(ConfigurationManager.AppSettings["runCronos"]) == 1)
+            {
+                //Logger.GetInstance().AddLog(true, "CallTeleasistencia", "Registra posicionamiento GPS");
+                this.CallCronos();
+            }
+
             t.Enabled = true;
 
         }
-
 
         public void CallTelmedLinks()
         {
@@ -125,104 +132,135 @@ namespace PushDespachoCache
 
             Logger.GetInstance().AddLog(true, "CallTelmedLinks", string.Format("Se encontraron {0} mensajes", dt.Rows.Count.ToString()));
 
-            for (int i = 0; i < dt.Rows.Count; i++)
+            TokenInfoRsp _tks = null;
+
+            if (dt.Rows.Count > 0)
             {
 
-                try
+                /// Armmo Link Telmed...
+
+                string urlLink = string.Format("{0}/Conference/NewLink", ConfigurationManager.AppSettings["AIDShamanAPI_TelmedLink"]);
+
+                string urlToken = string.Format("{0}/Login/GetToken/{1}", ConfigurationManager.AppSettings["AIDShamanAPI_TelmedLink"], ConfigurationManager.AppSettings["license"]);
+
+                string urlReplace = ConfigurationManager.AppSettings["AIDShamanAPI_Replace"];
+
+                SendMethods sm = new SendMethods(urlToken, urlLink);
+
+                if (_tks == null)
+                {
+                    _tks = sm.GetToken();
+                }
+
+                for (int i = 0; i < dt.Rows.Count; i++)
                 {
 
-                    /// Armmo Link Telmed...
+                    DataRow rowInc = dt.Rows[i];
 
-                    string urlToken = string.Format("{0}/Login/GetToken/{1}",
-                        ConfigurationManager.AppSettings["AIDShamanAPI_TelmedLink"], ConfigurationManager.AppSettings["license"]);
-
-                    string urlLink = string.Format("{0}/Conference/NewLink", ConfigurationManager.AppSettings["AIDShamanAPI_TelmedLink"]);
-
-
-                    SendMethods sm = new SendMethods(urlToken, urlLink);
-
-                    TokenInfoRsp _tks = sm.GetToken();
-
-                    NewLinkReq newLink = new NewLinkReq();
-
-                    newLink.ShamanIncidenteID = Convert.ToInt64(dt.Rows[i]["IncidenteId"]);
-
-                    newLink.UserId = Convert.ToInt64(dt.Rows[i]["AppUserId"]);
-                    newLink.FirstName = dt.Rows[i]["Nombre"].ToString();
-                    newLink.LastName = dt.Rows[i]["Apellido"].ToString();
-                    newLink.DNI = Convert.ToInt64(dt.Rows[i]["NroDocumento"]);
-                    newLink.Phone = dt.Rows[i]["Telefono"].ToString();
-                    newLink.Gender = dt.Rows[i]["Sexo"].ToString();
-                    newLink.FecNacimiento = DateToSQL(Convert.ToDateTime(dt.Rows[i]["FecNacimiento"]));
-                    newLink.Email = dt.Rows[i]["Email"].ToString();
-                    newLink.Serial = ConfigurationManager.AppSettings["license"];
-                    newLink.Symptom = dt.Rows[i]["Sintoma"].ToString();
-
-                    string linkTelmed = sm.NewLink(newLink, _tks.token);
-
-                    if (!string.IsNullOrEmpty(linkTelmed))
+                    try
                     {
 
-                        /// Envío WA
+                        NewLinkReq newLink = new NewLinkReq();
 
-                        DataTable dtWP = telmedLinks.GetForWhatsapp(Convert.ToDecimal(dt.Rows[i]["IncidenteId"]));
+                        newLink.ShamanIncidenteID = Convert.ToInt64(rowInc["IncidenteId"]);
 
-                        for (int w = 0; w < dtWP.Rows.Count; w++)
+                        newLink.UserId = Convert.ToInt64(rowInc["AppUserId"]);
+                        newLink.FirstName = rowInc["Nombre"].ToString();
+                        newLink.LastName = rowInc["Apellido"].ToString();
+                        newLink.DNI = Convert.ToInt64(rowInc["NroDocumento"]);
+                        newLink.Phone = rowInc["Telefono"].ToString();
+                        newLink.Gender = rowInc["Sexo"].ToString();
+                        newLink.FecNacimiento = DateToSQL(Convert.ToDateTime(rowInc["FecNacimiento"]));
+                        newLink.Email = rowInc["Email"].ToString();
+                        newLink.Serial = ConfigurationManager.AppSettings["license"];
+                        newLink.Symptom = rowInc["Sintoma"].ToString();
+
+                        newLink.ClientId = Convert.ToInt64(rowInc["ClientId"]);
+                        newLink.ClientCode = rowInc["ClienteCode"].ToString();
+                        newLink.ClientDescription = rowInc["ClientDescription"].ToString();
+                        newLink.ShamanAffiliateNumber = rowInc["ShamanAffiliateNumber"].ToString();
+
+                        newLink.Address_LocationId = Convert.ToInt64(rowInc["LocalidadId"]);
+                        newLink.Address_Location = rowInc["Localidad"].ToString();
+                        newLink.Address_Street = rowInc["dm_Calle"].ToString();
+                        newLink.Address_PostalCode = rowInc["dm_CodigoPostal"].ToString();
+                        newLink.Address_Number = rowInc["dm_Altura"].ToString();
+                        newLink.Address_Floor = rowInc["dm_Piso"].ToString();
+                        newLink.Address_Dpto = rowInc["dm_Departamento"].ToString();
+                        newLink.Address_Lat = Convert.ToDecimal(rowInc["dm_Latitud"]);
+                        newLink.Address_Lng = Convert.ToDecimal(rowInc["dm_Longitud"]);
+                        newLink.Address_BetweenStreet1 = rowInc["dm_EntreCalle1"].ToString();
+                        newLink.Address_BetweenStreet2 = rowInc["dm_EntreCalle2"].ToString();
+                        newLink.Address_Reference = rowInc["dm_Referencia"].ToString();
+
+                        string linkTelmed = sm.NewLink(newLink, _tks.token);
+
+                        if (!string.IsNullOrEmpty(linkTelmed))
                         {
 
-                            dtWP.Rows[w]["Telefono"] = "5491167551605";
+                            /// Envío WA
 
-                            string urlWA = string.Format("{0}?numDest={1}&nameTemplate={2}&paramsTemplate.1={3}",
-                                dtWP.Rows[w]["URL"].ToString(), dtWP.Rows[w]["Telefono"].ToString(), dtWP.Rows[w]["nameTemplate"].ToString(), linkTelmed);
+                            int metodoId = 1;
 
-                            sm = new SendMethods(urlWA);
+                            decimal telefono = telmedLinks.GetTelefono(rowInc["Telefono"].ToString());
 
-                            bool result = sm.Outgoing_Message();
-
-                            if (result)
+                            if (telefono > 9999999)
                             {
-                                telmedLinks.SetEnviado(Convert.ToDecimal(dtWP.Rows[w]["ID"]), true, linkTelmed, "", "JOB");
-                                Logger.GetInstance().AddLog(true, "CallTelmedLinks", string.Format("TelemedicinaLinkId {0}", dtWP.Rows[w]["ID"].ToString()));
+                                string urlWA = string.Format("{0}?numDest={1}&nameTemplate={2}&paramsTemplate.1={3}",
+                                    rowInc["URL"].ToString(), telefono.ToString(), rowInc["nameTemplate"].ToString(), linkTelmed.Replace(urlReplace, ""));
+
+                                sm = new SendMethods(urlWA);
+
+                                bool result = sm.Outgoing_Message();
+
+                                if (result)
+                                {
+                                    telmedLinks.SetEnviado(Convert.ToDecimal(rowInc["IncidenteId"]), metodoId, telefono, "", linkTelmed, true, "", "JOB");
+                                    Logger.GetInstance().AddLog(true, "CallTelmedLinks", string.Format("TelemedicinaLinkId {0}", rowInc["IncidenteId"].ToString()));
+                                }
+                                else
+                                {
+                                    telmedLinks.SetEnviado(Convert.ToDecimal(rowInc["IncidenteId"]), metodoId, telefono, "", linkTelmed, false, "Error al enviar WA", "JOB");
+                                    Logger.GetInstance().AddLog(false, "CallTelmedLinks", string.Format("TelemedicinaLinkId {0}", rowInc["IncidenteId"].ToString()));
+                                }
                             }
                             else
                             {
-                                telmedLinks.SetEnviado(Convert.ToDecimal(dtWP.Rows[w]["ID"]), false, linkTelmed, "Error al enviar", "JOB");
-                                Logger.GetInstance().AddLog(false, "CallTelmedLinks", string.Format("TelemedicinaLinkId {0}", dtWP.Rows[w]["ID"].ToString()));
+                                telmedLinks.SetEnviado(Convert.ToDecimal(rowInc["IncidenteId"]), metodoId, telefono, "", linkTelmed, false, "Error al enviar WA", "JOB");
+                                Logger.GetInstance().AddLog(false, "CallTelmedLinks", string.Format("TelemedicinaLinkId {0}", rowInc["IncidenteId"].ToString()));
                             }
+
                         }
 
+                        else
 
-                        /// Envío Email
-
-                        DataTable dtEmail = telmedLinks.GetForEmail(Convert.ToDecimal(dt.Rows[i]["IncidenteId"]));
-
-                        for (int w = 0; w < dtEmail.Rows.Count; w++)
                         {
 
-                            telmedLinks.SetEnviado(Convert.ToDecimal(dtEmail.Rows[w]["ID"]), false, linkTelmed, "Módulo sin desarrollar", "JOB");
-                            Logger.GetInstance().AddLog(false, "CallTelmedLinks", string.Format("TelemedicinaLinkId {0}", dtWP.Rows[w]["ID"].ToString()));
+                            telmedLinks.SetEnviado(Convert.ToDecimal(rowInc["IncidenteId"]), 1, 0, "", "", false, "No se pudo generar el link", "JOB");
+                            Logger.GetInstance().AddLog(false, "CallTelmedLinks", string.Format("TelemedicinaLinkId {0}", rowInc["IncidenteId"].ToString()));
 
                         }
 
+
                     }
-
-                    else
-
+                    catch (Exception ex)
                     {
-
-                        telmedLinks.CancelIncidente(Convert.ToDecimal(dt.Rows[i]["IncidenteId"]), "No se pudo generar el link", "JOB");
-                        Logger.GetInstance().AddLog(false, "CallTelmedLinks", string.Format("TelemedicinaLinkId {0}", dt.Rows[i]["IncidenteId"].ToString()));
-
+                        telmedLinks.SetEnviado(Convert.ToDecimal(rowInc["IncidenteId"]), 1, 0, "", "", false, "No se pudo generar el link", "JOB");
+                        Logger.GetInstance().AddLog(false, "CallTelmedLinks", string.Format("TelemedicinaLinkId {0} - Error {1}", rowInc["IncidenteId"].ToString(), ex.Message));
                     }
-
-
-                }
-                catch (Exception ex)
-                {
-                    telmedLinks.CancelIncidente(Convert.ToDecimal(dt.Rows[i]["IncidenteId"]), "No se pudo generar el link", "JOB");
-                    Logger.GetInstance().AddLog(false, "CallTeleasistencia", string.Format("TelemedicinaLinkId {0} - Error {1}", dt.Rows[i]["ID"].ToString(), ex.Message));
                 }
             }
+            else
+            {
+                Logger.GetInstance().AddLog(true, "CallTelmedLinks", "No hay links para enviar");
+            }
+
+            /// Establezo los expirados...
+
+            long expired = telmedLinks.SetExpirados();
+
+            Logger.GetInstance().AddLog(true, "CallTelmedLinks", string.Format("Se expiraron {0} links", expired.ToString()));
+
         }
 
         private string DateToSQL(DateTime fecha)
@@ -457,7 +495,6 @@ namespace PushDespachoCache
                 Logger.GetInstance().AddLog(true, "CallTeleasistencia", string.Format("Se encontraron {0} mensajes", listTeleasistenciaReq.Count.ToString()));
 
                 foreach (EmergencyDTO.TeleasistenciaReq teleasistenciaReq in listTeleasistenciaReq)
-
                 {
 
                     long lngConferenceId = 0;
@@ -487,102 +524,13 @@ namespace PushDespachoCache
                         else
                         {
                             Logger.GetInstance().AddLog(false, "CallTeleasistencia", string.Format("IncidenteId {0} - Devolvión NULL el Método", teleasistenciaReq.ShamanIncidenteID.ToString()));
+                            incPendientesTeleasistencia.SaveConferenceID(teleasistenciaReq.ShamanIncidenteID, lngConferenceId, "PACIENTE BLOQUEADO POR EL PORTAL");
                         }
 
                     }
                     catch (Exception ex)
                     {
                         Logger.GetInstance().AddLog(false, "CallTeleasistencia", string.Format("IncidenteId {0} - Error {1}", teleasistenciaReq.ShamanIncidenteID.ToString(), ex.Message));
-                    }
-                }
-            }
-        }
-
-        public void CallTeleasistenciaOld()
-        {
-            /// Connect Cache
-            ConnectionStringCache cnnCache = this.getConnectionString();
-
-            Logger.GetInstance().AddLog(true, "CallTeleasistencia", "Buscando Mensajes para Teleasistencia");
-
-            EmergencyC.IncPendientesTeleasistencia incPendientesTeleasistencia = new EmergencyC.IncPendientesTeleasistencia(cnnCache);
-            List<EmergencyDTO.TeleasistenciaReq> listTeleasistenciaReq = incPendientesTeleasistencia.GetPendientes();
-
-            if (listTeleasistenciaReq != null)
-            {
-
-                Logger.GetInstance().AddLog(true, "CallTeleasistencia", string.Format("Se encontraron {0} mensajes", listTeleasistenciaReq.Count.ToString()));
-
-                foreach (EmergencyDTO.TeleasistenciaReq teleasistenciaReq in listTeleasistenciaReq)
-
-                {
-
-                    string url = ConfigurationManager.AppSettings["AIDShamanAPI_URL"];
-
-                    //Creo la llamada al WS
-                    WebRequest request = WebRequest.Create(url);
-                    request.Credentials = CredentialCache.DefaultCredentials;
-                    request.Method = "POST";
-                    request.ContentType = "application/json";
-
-                    //Preparo el objeto a enviar
-                    try
-                    {
-                        string stringData = JsonConvert.SerializeObject(teleasistenciaReq);
-                        byte[] sBytes = Encoding.UTF8.GetBytes(stringData);
-                        request.ContentLength = sBytes.Length;
-                        Stream dataStream = request.GetRequestStream();
-                        dataStream.Write(sBytes, 0, sBytes.Length);
-                        dataStream.Close();
-                        WebResponse response = request.GetResponse();
-
-                        //RETURN
-                        string req = string.Empty;
-                        bool isOk = false;
-
-                        using (Stream responseStream = response.GetResponseStream())
-                        {
-
-                            long lngConferenceId = 0;
-
-                            try
-                            {
-
-                                StreamReader reader = new StreamReader(responseStream, Encoding.UTF8);
-                                req = reader.ReadToEnd();
-                                dynamic oReturn = JsonConvert.DeserializeObject(req);
-
-                                lngConferenceId = oReturn.ConferenceId != null ? Convert.ToInt64(oReturn.ConferenceId) : 0;
-
-                                isOk = true;
-
-                            }
-                            catch (Exception ex)
-                            {
-                                Logger.GetInstance().AddLog(false, "CallTeleasistencia", string.Format("IncidenteId {0} ", ex.Message));
-                            }
-
-                            incPendientesTeleasistencia.SaveConferenceID(teleasistenciaReq.ShamanIncidenteID, lngConferenceId);
-
-                            Logger.GetInstance().AddLog(true, "CallTeleasistencia", string.Format("IncidenteId {0} - ConferenceId {1}", teleasistenciaReq.ShamanIncidenteID.ToString(), lngConferenceId));
-
-                        }
-                        if (isOk)
-                        {
-                            try
-                            {
-                                dynamic oResponse = JsonConvert.DeserializeObject<dynamic>(req);
-                            }
-                            catch (JsonReaderException js)
-                            {
-                                throw new Exception("JS: " + js.Message);
-                            }
-                        }
-
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.GetInstance().AddLog(false, "CallTeleasistencia", string.Format("IncidenteId {0} ", ex.Message));
                     }
                 }
             }
@@ -622,7 +570,7 @@ namespace PushDespachoCache
                         CompumapC.GpsActual objGps = new CompumapC.GpsActual(cnnCache);
 
                         if (objGps.SetPosition(movil[0], objVehiculos.GetMovilId(objVehiculos.ID, DateTime.Now), objVehiculos.ID, movil[2], modNumbers.GetDouble(movil[3], true), modNumbers.GetDouble(movil[4], true),
-                            "", movil[6], movil[7], Convert.ToInt32(Convert.ToDecimal(movil[5])), movil[8], movil[9], movil[10], "JOB"))
+                            "", movil[6], movil[7], movil[5] != "" ? Convert.ToInt32(Convert.ToDecimal(movil[5])) : 0, movil[8], movil[9], movil[10], "JOB"))
                         {
                             Logger.GetInstance().AddLog(true, "CallGPS", string.Format("Vehículo {0} ok", movil[0]));
                         }
@@ -650,6 +598,85 @@ namespace PushDespachoCache
             }
         }
 
+        public void CallCronos()
+        {
+
+            try
+            {
+
+                Logger.GetInstance().AddLog(true, "CallCronos", "Buscando fichadas");
+
+                long fecDesde = modFechasCs.DtoN(DateTime.Now.AddDays(Convert.ToInt32(ConfigurationManager.AppSettings["CronosDays"]) * - 1));
+
+                DataTable dtIngresos = new DataTable();
+
+                using (OleDbConnection connection = new OleDbConnection(ConfigurationManager.AppSettings["CronosSQLAccess"].ToString()))
+                {
+
+                    string cmdText = "";
+
+                    cmdText = "SELECT * FROM Fichadas WHERE fichada_fecha >= '" + fecDesde.ToString() + "'";
+
+                    using (OleDbCommand command = new OleDbCommand(cmdText, connection))
+                    {
+                        command.CommandType = CommandType.Text;
+                        using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
+                        {
+                            adapter.Fill(dtIngresos);
+                        }
+                    }
+                }
+
+                Logger.GetInstance().AddLog(true, "CallCronos", string.Format("Se encontraron {0} fichadas", dtIngresos.Rows.Count.ToString()));
+
+                if (dtIngresos.Rows.Count > 0)
+                {
+                    /// Connect Cache
+                    ConnectionStringCache cnnCache = this.getConnectionString();
+
+                    for (int i = 0; i < dtIngresos.Rows.Count; i++)
+                    {
+
+                        DataRow row = dtIngresos.Rows[i];
+
+                        RrhhC.IngresosDiarios objIngresos = new RrhhC.IngresosDiarios(cnnCache);
+
+                        DevPersistir rdoSave = objIngresos.SetFichadaByDocumento(Convert.ToDecimal(row["fichada_numero"]), Convert.ToDecimal(row["fichada_fecha"]),
+                            modFechasCs.MinutesToTime(Convert.ToInt64(row["fichada_hora"])), Convert.ToInt32(row["fichada_evento"]), row["fichada_registrador"].ToString());
+
+                        if (!rdoSave.Resultado)
+                        {
+                            Logger.GetInstance().AddLog(true, "CallCronos", string.Format("Nro. Documento: {0} / Fecha: {1} / Error: {2} ", row["fichada_numero"].ToString(), row["fichada_fecha"].ToString(), rdoSave.DescripcionError));
+                        }
+
+                    }
+
+                    /// Limpio fichadas
+
+                    OleDbConnection sqlcon = new OleDbConnection(ConfigurationManager.AppSettings["CronosSQLAccess"].ToString());
+
+                    sqlcon.Open();
+
+                    string SQL = "DELETE FROM Fichadas";
+
+                    using (OleDbCommand cmd = new OleDbCommand(SQL, sqlcon))
+                    {
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    sqlcon.Close();
+                    sqlcon = null;
+
+                }
+
+            }
+
+            catch (Exception ex)
+            {
+                Logger.GetInstance().AddLog(true, "CallCronos - Error {0}", ex.Message);
+            }
+
+        }
 
         public ConnectionStringCache getConnectionString()
         {
